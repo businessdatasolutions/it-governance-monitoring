@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IT Governance Monitoring System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f7fafc; /* Lighter gray background */
+      }
+
+      /* Modal styles */
+      .modal {
+        transition: opacity 0.25s ease;
+        z-index: 50;
+      }
+      .modal-content {
+        transition: transform 0.25s ease;
+      }
+      .modal-active body {
+        overflow: hidden;
+      }
+
+      /* Select dropdown arrow */
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+        background-repeat: no-repeat;
+        background-position-x: 98%;
+        background-position-y: 50%;
+        padding-right: 2rem;
+      }
+
+      /* Intervention details animation */
+      .intervention-details {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, margin-top 0.3s ease-out,
+          opacity 0.3s ease-out;
+        margin-top: 0;
+        opacity: 0;
+        border-radius: 0.375rem; /* rounded-md */
+      }
+      .intervention-details.visible {
+        max-height: 500px; /* Adjust as needed */
+        margin-top: 0.75rem; /* mt-3 */
+        opacity: 1;
+      }
+
+      /* Event card styling */
+      .event-card {
+        border-left-width: 4px;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+      .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+      }
+
+      /* Subtle hover effects for buttons */
+      button:hover {
+        filter: brightness(95%);
+      }
+
+      /* Save confirmation message style */
+      #saveConfirmation {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        transition: opacity 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body class="text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+      <header class="mb-10">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-blue-700">
+          IT Governance Effectiveness Monitor
+        </h1>
+        <p class="text-center text-gray-600 mt-2">
+          Based on Critical Success Factors (CSFs) from Alreemy et al. (2016)
+        </p>
+      </header>
+
+      <section id="dashboard" class="mb-10 p-6 bg-white rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold mb-5 text-gray-700 border-b pb-2">
+          Overall CSF Status
+        </h2>
+        <div
+          id="dashboard-content"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 text-center"
+        ></div>
+      </section>
+
+      <section id="pdca-events" class="mb-10 p-6 bg-white rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">
+          Planned Activities & Events (PDCA Cycle)
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-3">
+          <div>
+            <h3
+              class="text-lg font-semibold mb-4 text-indigo-600 border-b-2 border-indigo-200 pb-1 flex items-center"
+            >
+              <i class="fas fa-clipboard-list mr-2"></i>Plan
+            </h3>
+            <div id="pdca-plan" class="space-y-4">
+              <p class="text-sm text-gray-500 italic no-events">
+                No planned activities.
+              </p>
+            </div>
+          </div>
+          <div>
+            <h3
+              class="text-lg font-semibold mb-4 text-green-600 border-b-2 border-green-200 pb-1 flex items-center"
+            >
+              <i class="fas fa-running mr-2"></i>Do
+            </h3>
+            <div id="pdca-do" class="space-y-4">
+              <p class="text-sm text-gray-500 italic no-events">
+                No 'Do' activities scheduled.
+              </p>
+            </div>
+          </div>
+          <div>
+            <h3
+              class="text-lg font-semibold mb-4 text-yellow-600 border-b-2 border-yellow-200 pb-1 flex items-center"
+            >
+              <i class="fas fa-tasks mr-2"></i>Check
+            </h3>
+            <div id="pdca-check" class="space-y-4">
+              <p class="text-sm text-gray-500 italic no-events">
+                No 'Check' activities scheduled.
+              </p>
+            </div>
+          </div>
+          <div>
+            <h3
+              class="text-lg font-semibold mb-4 text-red-600 border-b-2 border-red-200 pb-1 flex items-center"
+            >
+              <i class="fas fa-lightbulb mr-2"></i>Act
+            </h3>
+            <div id="pdca-act" class="space-y-4">
+              <p class="text-sm text-gray-500 italic no-events">
+                No 'Act' activities scheduled.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <h2 class="text-2xl font-semibold mb-5 text-gray-700 mt-12 border-b pb-2">
+        CSF Details & Interventions
+      </h2>
+      <section id="csf-categories" class="space-y-8"></section>
+    </div>
+
+    <div
+      id="editModal"
+      class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none"
+    >
+      <div
+        class="modal-content bg-white w-11/12 md:max-w-lg mx-auto rounded-lg shadow-xl p-6 md:p-8 transform scale-95"
+      >
+        <div class="flex justify-between items-center mb-5 border-b pb-3">
+          <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">
+            Edit CSF Status
+          </h3>
+          <button
+            onclick="closeEditModal()"
+            class="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            &times;
+          </button>
+        </div>
+        <div>
+          <input type="hidden" id="modalCsfId" />
+          <div class="mb-4">
+            <label
+              for="csfStatus"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Effectiveness Status:</label
+            >
+            <select
+              id="csfStatus"
+              name="csfStatus"
+              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white shadow-sm"
+            >
+              <option value="not_evaluated">Not Evaluated</option>
+              <option value="poor">Poor</option>
+              <option value="fair">Fair</option>
+              <option value="good">Good</option>
+              <option value="excellent">Excellent</option>
+            </select>
+          </div>
+          <div class="mb-6">
+            <label
+              for="csfNotes"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Notes/Evidence:</label
+            >
+            <textarea
+              id="csfNotes"
+              name="csfNotes"
+              rows="5"
+              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-3"
+              placeholder="Add relevant notes, links to evidence, or data points..."
+            ></textarea>
+          </div>
+          <div class="text-right space-x-3">
+            <button
+              onclick="closeEditModal()"
+              class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition duration-150 ease-in-out"
+            >
+              Cancel
+            </button>
+            <button
+              onclick="handleSaveCsfData()"
+              class="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150 ease-in-out"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="saveConfirmation"
+      class="hidden bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-md shadow-md"
+    >
+      <i class="fas fa-check-circle mr-1"></i> CSF status saved successfully!
+    </div>
+
+    <script>
+      // --- Constants ---
+      const CSF_STORAGE_KEY = "itgMonitoringData";
+
+      // --- Data Definitions ---
+
+      // Synthetic Event Data (Simulating fetch from events.json)
+      const eventsData = [
+        {
+          id: "evt001",
+          title: "Q3 Stakeholder Satisfaction Survey",
+          description:
+            "Distribute survey to key business and IT stakeholders regarding ITG involvement and communication.",
+          date: "2025-07-15",
+          pdca_stage: "check",
+          touchpoint: "asynchronous",
+          related_csf_ids: ["sa1", "sa4"],
+        },
+        {
+          id: "evt002",
+          title: "IT Steering Committee Meeting",
+          description:
+            "Review Q2 project portfolio alignment with business strategy and approve Q3 budget adjustments.",
+          date: "2025-06-28",
+          pdca_stage: "plan",
+          touchpoint: "direct",
+          related_csf_ids: ["sa2", "sa3", "rm1"],
+        },
+        {
+          id: "evt003",
+          title: "Deploy Updated Security Policy",
+          description:
+            "Roll out the revised data security policy and conduct mandatory awareness training.",
+          date: "2025-08-01",
+          pdca_stage: "do",
+          touchpoint: "asynchronous",
+          related_csf_ids: ["oe1", "oe4", "oe5"],
+        },
+        {
+          id: "evt004",
+          title: "Internal Audit: GDPR Compliance",
+          description:
+            "Perform internal audit focused on GDPR data handling procedures within IT systems.",
+          date: "2025-09-10",
+          pdca_stage: "check",
+          touchpoint: "direct",
+          related_csf_ids: ["ee1"],
+        },
+        {
+          id: "evt005",
+          title: "Workshop: Improving IT-Business Comms",
+          description:
+            "Facilitated workshop based on Q3 survey results to identify actions for improving communication channels.",
+          date: "2025-08-20",
+          pdca_stage: "act",
+          touchpoint: "direct",
+          related_csf_ids: ["sa4"],
+        },
+        {
+          id: "evt006",
+          title: "Plan Project Management Methodology Refresh",
+          description:
+            "Initiate planning for updating the corporate project management methodology based on recent project reviews.",
+          date: "2025-10-01",
+          pdca_stage: "plan",
+          touchpoint: "direct",
+          related_csf_ids: ["pm2"],
+        },
+        {
+          id: "evt007",
+          title: "Conduct IT Skills Gap Analysis",
+          description:
+            "Execute the planned skills gap analysis across the IT department.",
+          date: "2025-07-25",
+          pdca_stage: "do",
+          touchpoint: "asynchronous",
+          related_csf_ids: ["rm2"],
+        },
+      ];
+
+      // CSF Data Structure with Interventions
+      const csfDataStructure = [
+        {
+          id: "strategic_alignment",
+          name: "Strategic Alignment",
+          factors: [
+            {
+              id: "sa1",
+              name: "Adequate stakeholders involvement",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Conduct regular surveys/interviews with key stakeholders (business, IT, end-users) on perceived involvement.</li><li>Review governance committee minutes for attendance and participation diversity.</li><li>Track: Stakeholder satisfaction scores, attendance records, documented feedback, number of projects with active business owners.</li></ul>`,
+            },
+            {
+              id: "sa2",
+              name: "Adequate management support and ownership",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review executive communications (memos, presentations) for explicit ITG support.</li><li>Interview senior managers on understanding and commitment.</li><li>Track resource allocation (time, budget) towards ITG activities.</li><li>Track: Documented support statements, survey results on commitment, ITG-specific budget, frequency of ITG on executive agendas.</li></ul>`,
+            },
+            {
+              id: "sa3",
+              name: "Effective alignment and communication between IT and business strategy",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review IT strategic plans & project portfolios for explicit links to business goals.</li><li>Analyze business cases for strategic justification.</li><li>Conduct joint business-IT workshops to assess alignment.</li><li>Track: % of IT projects supporting strategic objectives, traceability matrix, feedback from joint sessions, documented business value from IT.</li></ul>`,
+            },
+            {
+              id: "sa4",
+              name: "Effective communication between IT and business",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Survey business units on clarity, frequency, usefulness of IT communication.</li><li>Review IT communication channels (newsletters, intranet, meetings).</li><li>Track resolution time for business-raised issues.</li><li>Track: Business satisfaction scores (IT comms), frequency/reach of IT comms, number of cross-functional meetings, feedback on IT report clarity.</li></ul>`,
+            },
+          ],
+        },
+        {
+          id: "environmental_effect",
+          name: "Environmental Effect (External)",
+          factors: [
+            {
+              id: "ee1",
+              name: "Regulatory environment & requirements compliance",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Conduct regular internal/external compliance audits (e.g., GDPR, SOX).</li><li>Maintain a compliance register tracking requirements and evidence.</li><li>Review reports from regulators/auditors.</li><li>Track: Number of audit findings (major/minor), % of requirements met, timeliness of compliance reporting, external audit results.</li></ul>`,
+            },
+          ],
+        },
+        {
+          id: "organizational_effect",
+          name: "Organizational Effect (Internal)",
+          factors: [
+            {
+              id: "oe1",
+              name: "Clear ITG policies, principles & responsibilities",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review ITG documentation (charters, policies, RACI charts) for clarity, completeness, accessibility.</li><li>Survey staff (IT & business) on awareness/understanding of policies and roles.</li><li>Assess frequency of policy updates and communication.</li><li>Track: Accessibility score of ITG docs, survey results (awareness), date of last policy review, documented RACI matrix.</li></ul>`,
+            },
+            {
+              id: "oe2",
+              name: "Effective current Enterprise Governance",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review minutes/decisions from top governance bodies (Board, Exec Committee) on IT matters.</li><li>Assess integration of IT risk into enterprise risk management.</li><li>Track: Frequency/quality of IT reporting to board, documented integration of ITG in corporate governance, evidence of enterprise oversight on major IT investments/risks.</li></ul>`,
+            },
+            {
+              id: "oe3",
+              name: "Appropriate organizational culture",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Conduct culture surveys focusing on IT attitudes, collaboration, risk awareness, policy adherence.</li><li>Analyze employee feedback channels for IT governance comments.</li><li>Observe behaviors in cross-functional meetings.</li><li>Track: Culture survey scores (IT collaboration/compliance), qualitative feedback analysis, documented examples of cross-departmental cooperation.</li></ul>`,
+            },
+            {
+              id: "oe4",
+              name: "Clear IT strategy, principles & policies",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review documented IT strategy for clarity, alignment, communication effectiveness.</li><li>Assess existence/application of guiding IT principles (e.g., cloud-first, buy vs. build).</li><li>Audit adherence to key IT policies (security, data management).</li><li>Track: Clarity score of IT strategy, documented IT principles, policy compliance audit results, staff awareness scores (strategy/principles).</li></ul>`,
+            },
+            {
+              id: "oe5",
+              name: "Good organization change strategy",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review process for managing IT-related changes (systems, processes, governance).</li><li>Assess effectiveness of communication, training, support during changes.</li><li>Survey users impacted by recent changes.</li><li>Track: Existence of formal change process, success rate of IT changes (time, budget, objectives), user satisfaction post-change, effectiveness scores (change comms/training).</li></ul>`,
+            },
+          ],
+        },
+        {
+          id: "performance_management",
+          name: "Performance Management",
+          factors: [
+            {
+              id: "pm1",
+              name: "Adequate analysis, evaluation of the current and future use of IT",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review processes for tech assessment, IT performance monitoring, benefits realization.</li><li>Analyze reports on IT service levels, system performance, project outcomes.</li><li>Conduct post-implementation reviews for major projects.</li><li>Track: Existence/use of IT performance dashboards, SLA achievement rates, post-implementation review results, documented benefits tracking.</li></ul>`,
+            },
+            {
+              id: "pm2",
+              name: "Good project management methodology",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Audit adherence to standard project management methodology.</li><li>Review project documentation quality (charters, plans, risk registers, status reports).</li><li>Track project performance metrics (time, budget, scope).</li><li>Track: % projects using standard methodology, project audit results, project success rates (schedule, budget, scope), documentation quality scores.</li></ul>`,
+            },
+            {
+              id: "pm3",
+              name: "Effective performance management strategy",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Review framework for measuring IT performance (e.g., Balanced Scorecard, COBIT metrics).</li><li>Assess alignment of IT metrics with business objectives.</li><li>Evaluate regularity/effectiveness of performance review meetings.</li><li>Track: Existence/use of formal IT performance framework, documented linkage of IT metrics to business goals, frequency/outcomes of IT performance reviews.</li></ul>`,
+            },
+          ],
+        },
+        {
+          id: "resource_management",
+          name: "Resource Management",
+          factors: [
+            {
+              id: "rm1",
+              name: "Sufficient financial support",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Analyze IT budget allocation vs. strategic priorities/operational needs.</li><li>Track budget variance (planned vs. actual).</li><li>Survey managers on perceived funding adequacy.</li><li>Review investment appraisal processes.</li><li>Track: IT budget % of revenue, budget variance reports, survey results (funding adequacy), evidence of value-for-money analysis.</li></ul>`,
+            },
+            {
+              id: "rm2",
+              name: "Adequate IT skills & staff",
+              interventions: `<ul class="list-disc list-inside text-xs text-gray-600"><li>Conduct IT skills gap analyses.</li><li>Review training plans and records.</li><li>Track IT staff turnover rates.</li><li>Survey IT staff on workload and development opportunities.</li><li>Assess use of external resources/consultants.</li><li>Track: Skills gap analysis results, training budget use, IT turnover rate, employee satisfaction/workload surveys (IT), internal vs. external resource ratio.</li></ul>`,
+            },
+          ],
+        },
+      ];
+
+      // --- State ---
+      let csfMonitoringData = {}; // Holds status and notes for each CSF factor
+
+      // --- DOM Elements ---
+      const dashboardContentEl = document.getElementById("dashboard-content");
+      const csfCategoriesContainerEl =
+        document.getElementById("csf-categories");
+      const pdcaContainers = {
+        plan: document.getElementById("pdca-plan"),
+        do: document.getElementById("pdca-do"),
+        check: document.getElementById("pdca-check"),
+        act: document.getElementById("pdca-act"),
+      };
+      const modalEl = document.getElementById("editModal");
+      const modalTitleEl = document.getElementById("modalTitle");
+      const modalCsfIdInput = document.getElementById("modalCsfId");
+      const csfStatusSelectEl = document.getElementById("csfStatus");
+      const csfNotesTextareaEl = document.getElementById("csfNotes");
+      const saveConfirmationEl = document.getElementById("saveConfirmation");
+
+      // --- Helper Functions ---
+
+      /**
+       * Gets the Tailwind CSS classes and label for a given CSF status.
+       * @param {string} status - The CSF status ('excellent', 'good', etc.).
+       * @returns {object} Object containing color, bgColor, icon, and label.
+       */
+      function getStatusStyle(status) {
+        // Status styles remain the same
+        switch (status) {
+          case "excellent":
+            return {
+              color: "text-green-700",
+              bgColor: "bg-green-100",
+              icon: "fa-check-circle",
+              label: "Excellent",
+            };
+          case "good":
+            return {
+              color: "text-blue-700",
+              bgColor: "bg-blue-100",
+              icon: "fa-thumbs-up",
+              label: "Good",
+            };
+          case "fair":
+            return {
+              color: "text-yellow-700",
+              bgColor: "bg-yellow-100",
+              icon: "fa-exclamation-triangle",
+              label: "Fair",
+            };
+          case "poor":
+            return {
+              color: "text-red-700",
+              bgColor: "bg-red-100",
+              icon: "fa-times-circle",
+              label: "Poor",
+            };
+          default:
+            return {
+              color: "text-gray-600",
+              bgColor: "bg-gray-100",
+              icon: "fa-question-circle",
+              label: "Not Evaluated",
+            };
+        }
+      }
+
+      /**
+       * Formats a date string into a more readable format.
+       * @param {string} dateString - ISO date string (e.g., '2025-07-15').
+       * @returns {string} Formatted date string (e.g., 'Jul 15, 2025').
+       */
+      function formatEventDate(dateString) {
+        // Date formatting remains the same
+        const options = { year: "numeric", month: "short", day: "numeric" };
+        return new Date(dateString + "T00:00:00Z").toLocaleDateString(
+          "en-US",
+          options
+        );
+      }
+
+      /**
+       * Shows a brief confirmation message.
+       * @param {string} message - The message to display.
+       * @param {number} duration - How long to display the message in milliseconds.
+       */
+      function showConfirmation(message, duration = 3000) {
+        // Confirmation message remains the same
+        saveConfirmationEl.textContent = message;
+        saveConfirmationEl.classList.remove("hidden", "opacity-0");
+        saveConfirmationEl.classList.add("opacity-100");
+
+        setTimeout(() => {
+          saveConfirmationEl.classList.remove("opacity-100");
+          saveConfirmationEl.classList.add("opacity-0");
+          setTimeout(() => saveConfirmationEl.classList.add("hidden"), 500);
+        }, duration);
+      }
+
+      // --- Data Handling ---
+
+      /** Loads CSF monitoring data from local storage or initializes it with dummy data. */
+      function initializeCsfData() {
+        const storedData = localStorage.getItem(CSF_STORAGE_KEY);
+        if (storedData) {
+          csfMonitoringData = JSON.parse(storedData);
+          // Ensure all factors from the structure exist, add if missing (keeps existing data)
+          csfDataStructure.forEach((category) => {
+            category.factors.forEach((factor) => {
+              if (!csfMonitoringData[factor.id]) {
+                csfMonitoringData[factor.id] = {
+                  status: "not_evaluated",
+                  notes: "",
+                };
+              }
+            });
+          });
+          saveCsfDataToStorage(); // Save if structure changed
+        } else {
+          // *** Initialize with DUMMY DATA if no stored data exists ***
+          csfMonitoringData = {};
+          csfDataStructure.forEach((category) => {
+            category.factors.forEach((factor, index) => {
+              // Assign varied statuses and notes based on index/category for variety
+              let status = "not_evaluated";
+              let notes = "";
+              const factorIndex = index % 4; // Cycle through statuses
+
+              switch (factorIndex) {
+                case 0:
+                  status = "good";
+                  notes =
+                    "Recent survey shows positive feedback (Score: 4.1/5). Minor improvements suggested for end-user involvement.";
+                  break;
+                case 1:
+                  status = "fair";
+                  notes =
+                    "Management support documented, but resource allocation needs review. Follow up planned in Q3 SteerCo.";
+                  break;
+                case 2:
+                  status = "excellent";
+                  notes =
+                    "Clear alignment demonstrated in project portfolio review (evt002). Business value tracking implemented.";
+                  break;
+                case 3:
+                  status = "poor";
+                  notes =
+                    "Business units report infrequent updates. Communication plan needs urgent revision (Action from evt005).";
+                  break;
+              }
+              // Override specific ones for more realism
+              if (factor.id === "ee1") {
+                status = "good";
+                notes =
+                  "Last GDPR audit (evt004) passed with minor observations. Remediation tracked.";
+              }
+              if (factor.id === "oe3") {
+                status = "fair";
+                notes =
+                  "Culture survey indicates resistance to policy changes. Change management efforts ongoing.";
+              }
+              if (factor.id === "pm2") {
+                status = "good";
+                notes =
+                  "Methodology adherence at 85%. Refresh planned (evt006).";
+              }
+              if (factor.id === "rm1") {
+                status = "fair";
+                notes =
+                  "Budget approved but concerns remain about funding for innovation projects.";
+              }
+              if (factor.id === "rm2") {
+                status = "good";
+                notes =
+                  "Skills gap analysis completed (evt007). Training plan updated. Turnover stable.";
+              }
+
+              csfMonitoringData[factor.id] = { status: status, notes: notes };
+            });
+          });
+          saveCsfDataToStorage(); // Save the initial dummy data
+        }
+        console.log("CSF Data loaded/initialized:", csfMonitoringData);
+      }
+
+      /** Saves the current CSF monitoring data to local storage. */
+      function saveCsfDataToStorage() {
+        // Save function remains the same
+        localStorage.setItem(
+          CSF_STORAGE_KEY,
+          JSON.stringify(csfMonitoringData)
+        );
+        console.log("CSF Data saved:", csfMonitoringData);
+      }
+
+      // --- Rendering Functions ---
+
+      /** Renders the overall status dashboard based on CSF data. */
+      function renderDashboard() {
+        // Dashboard rendering remains the same
+        dashboardContentEl.innerHTML = "";
+        let categoryScores = {};
+        csfDataStructure.forEach((category) => {
+          let categoryTotalScore = 0;
+          let evaluatedFactors = 0;
+          category.factors.forEach((factor) => {
+            const factorData = csfMonitoringData[factor.id] || {
+              status: "not_evaluated",
+            };
+            let score = 0;
+            if (factorData.status === "excellent") score = 4;
+            else if (factorData.status === "good") score = 3;
+            else if (factorData.status === "fair") score = 2;
+            else if (factorData.status === "poor") score = 1;
+            if (factorData.status !== "not_evaluated") {
+              categoryTotalScore += score;
+              evaluatedFactors++;
+            }
+          });
+          let avgStatus = "not_evaluated";
+          if (evaluatedFactors > 0) {
+            const avgScore = categoryTotalScore / evaluatedFactors;
+            if (avgScore >= 3.5) avgStatus = "excellent";
+            else if (avgScore >= 2.5) avgStatus = "good";
+            else if (avgScore >= 1.5) avgStatus = "fair";
+            else avgStatus = "poor";
+          }
+          categoryScores[category.id] = {
+            status: avgStatus,
+            name: category.name,
+          };
+        });
+        Object.values(categoryScores).forEach((catScore) => {
+          const statusStyle = getStatusStyle(catScore.status);
+          const dashboardItem = document.createElement("div");
+          dashboardItem.className = `p-4 rounded-lg ${statusStyle.bgColor} shadow-sm border border-gray-200`;
+          dashboardItem.innerHTML = `
+                    <h4 class="font-semibold text-sm mb-1 text-gray-700 truncate" title="${catScore.name}">${catScore.name}</h4>
+                    <p class="text-lg font-bold ${statusStyle.color}">
+                        <i class="fas ${statusStyle.icon} mr-1"></i>
+                        ${statusStyle.label}
+                    </p>
+                 `;
+          dashboardContentEl.appendChild(dashboardItem);
+        });
+      }
+
+      /** Renders a single CSF factor item. */
+      function renderSingleCsfFactor(factor) {
+        // Single factor rendering remains the same
+        const factorData = csfMonitoringData[factor.id] || {
+          status: "not_evaluated",
+          notes: "",
+        };
+        const statusStyle = getStatusStyle(factorData.status);
+        const truncatedNotes =
+          factorData.notes.length > 70
+            ? factorData.notes.substring(0, 70) + "..."
+            : factorData.notes;
+        const listItem = document.createElement("li");
+        listItem.className = "border-b border-gray-200 pb-4";
+        listItem.innerHTML = `
+                <div class="flex justify-between items-start sm:items-center flex-col sm:flex-row">
+                    <div class="flex-1 mr-4 mb-2 sm:mb-0">
+                        <span class="text-gray-800 font-medium">${
+                          factor.name
+                        }</span>
+                        ${
+                          factorData.notes
+                            ? `<p class="text-xs text-gray-500 mt-1 italic" title="${factorData.notes}">Note: ${truncatedNotes}</p>`
+                            : ""
+                        }
+                    </div>
+                    <div class="flex items-center space-x-2 flex-shrink-0 self-end sm:self-center">
+                         <span class="text-sm font-medium px-3 py-1 rounded-full ${
+                           statusStyle.bgColor
+                         } ${statusStyle.color}">
+                            <i class="fas ${statusStyle.icon} mr-1.5"></i>
+                            ${statusStyle.label}
+                         </span>
+                         <button onclick="openEditModal('${factor.id}', '${
+          factor.name
+        }')" class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-100" title="Edit Status">
+                            <i class="fas fa-edit"></i>
+                         </button>
+                         <button onclick="toggleInterventions('${
+                           factor.id
+                         }')" class="text-gray-500 hover:text-gray-700 text-sm px-2 py-1 rounded hover:bg-gray-200" title="Show/Hide Interventions">
+                             <i id="icon-${
+                               factor.id
+                             }" class="fas fa-chevron-down transition-transform duration-300"></i>
+                         </button>
+                    </div>
+                </div>
+                <div id="interventions-${
+                  factor.id
+                }" class="intervention-details bg-gray-50 p-4 mt-3 border border-gray-200">
+                     <h4 class="text-sm font-semibold text-gray-700 mb-2">Suggested Interventions & Data Sources:</h4>
+                     ${factor.interventions}
+                </div>
+            `;
+        return listItem;
+      }
+
+      /** Renders all CSF categories and their factors. */
+      function renderAllCsfCategories() {
+        // Category rendering remains the same
+        csfCategoriesContainerEl.innerHTML = "";
+        csfDataStructure.forEach((category) => {
+          const categoryCard = document.createElement("div");
+          categoryCard.className = "bg-white rounded-lg shadow-lg p-6";
+          categoryCard.innerHTML = `<h3 class="text-xl font-semibold mb-5 text-blue-600 border-b pb-2">${category.name}</h3>`;
+          const factorList = document.createElement("ul");
+          factorList.className = "space-y-4";
+          category.factors.forEach((factor) => {
+            factorList.appendChild(renderSingleCsfFactor(factor));
+          });
+          categoryCard.appendChild(factorList);
+          csfCategoriesContainerEl.appendChild(categoryCard);
+        });
+      }
+
+      /** Renders all PDCA event cards. */
+      function renderAllEvents(events) {
+        // Event rendering remains the same
+        Object.values(pdcaContainers).forEach(
+          (container) => (container.innerHTML = "")
+        );
+        let eventCount = { plan: 0, do: 0, check: 0, act: 0 };
+        const sortedEvents = [...events].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+        sortedEvents.forEach((event) => {
+          const eventCard = document.createElement("div");
+          let stageColor = "gray";
+          let targetContainer = null;
+          switch (event.pdca_stage) {
+            case "plan":
+              stageColor = "indigo";
+              targetContainer = pdcaContainers.plan;
+              eventCount.plan++;
+              break;
+            case "do":
+              stageColor = "green";
+              targetContainer = pdcaContainers.do;
+              eventCount.do++;
+              break;
+            case "check":
+              stageColor = "yellow";
+              targetContainer = pdcaContainers.check;
+              eventCount.check++;
+              break;
+            case "act":
+              stageColor = "red";
+              targetContainer = pdcaContainers.act;
+              eventCount.act++;
+              break;
+          }
+          eventCard.className = `event-card border-${stageColor}-500 bg-white p-3 rounded-lg shadow-sm text-sm hover:shadow-md`;
+          eventCard.innerHTML = `
+                    <h4 class="font-semibold text-${stageColor}-800 mb-1">${
+            event.title
+          }</h4>
+                    <p class="text-xs text-gray-600 mb-2">${
+                      event.description
+                    }</p>
+                    <div class="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-100 mt-2">
+                        <span class="flex items-center">
+                            <i class="fas fa-calendar-alt mr-1.5 text-gray-400"></i> ${formatEventDate(
+                              event.date
+                            )}
+                        </span>
+                        <span class="font-medium capitalize px-2.5 py-0.5 rounded-full text-xs ${
+                          event.touchpoint === "direct"
+                            ? `bg-blue-100 text-blue-800`
+                            : `bg-purple-100 text-purple-800`
+                        }">
+                           <i class="fas ${
+                             event.touchpoint === "direct"
+                               ? "fa-users"
+                               : "fa-headset"
+                           } mr-1"></i> ${event.touchpoint}
+                        </span>
+                    </div>
+                `;
+          if (targetContainer) {
+            targetContainer.appendChild(eventCard);
+          }
+        });
+        Object.keys(pdcaContainers).forEach((stage) => {
+          if (eventCount[stage] === 0) {
+            pdcaContainers[
+              stage
+            ].innerHTML = `<p class="text-sm text-gray-500 italic no-events">No ${stage} activities scheduled.</p>`;
+          }
+        });
+      }
+
+      /** Toggles the visibility of intervention details for a CSF factor. */
+      function toggleInterventions(factorId) {
+        // Toggle function remains the same
+        const detailsDiv = document.getElementById(`interventions-${factorId}`);
+        const icon = document.getElementById(`icon-${factorId}`);
+        if (detailsDiv) {
+          const isVisible = detailsDiv.classList.contains("visible");
+          detailsDiv.classList.toggle("visible", !isVisible);
+          if (icon) {
+            icon.classList.toggle("rotate-180", !isVisible);
+          }
+        }
+      }
+
+      // --- Modal Handling ---
+
+      /** Opens the CSF Edit Modal with data for the specified factor. */
+      function openEditModal(csfId, csfName) {
+        // Open modal function remains the same
+        const factorData = csfMonitoringData[csfId] || {
+          status: "not_evaluated",
+          notes: "",
+        };
+        modalTitleEl.textContent = `Edit Status: ${csfName}`;
+        modalCsfIdInput.value = csfId;
+        csfStatusSelectEl.value = factorData.status;
+        csfNotesTextareaEl.value = factorData.notes;
+        modalEl.classList.remove("opacity-0", "pointer-events-none");
+        modalEl.classList.add("opacity-100");
+        modalEl.querySelector(".modal-content").classList.remove("scale-95");
+        modalEl.querySelector(".modal-content").classList.add("scale-100");
+        document.body.classList.add("modal-active");
+        csfStatusSelectEl.focus();
+      }
+
+      /** Closes the CSF Edit Modal. */
+      function closeEditModal() {
+        // Close modal function remains the same
+        modalEl.classList.add("opacity-0");
+        modalEl.classList.remove("opacity-100");
+        setTimeout(() => {
+          modalEl.classList.add("pointer-events-none");
+          modalEl.querySelector(".modal-content").classList.add("scale-95");
+          modalEl.querySelector(".modal-content").classList.remove("scale-100");
+          document.body.classList.remove("modal-active");
+        }, 250);
+      }
+
+      /** Handles saving data from the CSF Edit Modal. */
+      function handleSaveCsfData() {
+        // Save handler remains the same
+        const csfId = modalCsfIdInput.value;
+        const newStatus = csfStatusSelectEl.value;
+        const newNotes = csfNotesTextareaEl.value.trim();
+        if (csfId && csfMonitoringData[csfId]) {
+          csfMonitoringData[csfId].status = newStatus;
+          csfMonitoringData[csfId].notes = newNotes;
+          saveCsfDataToStorage();
+          renderAllCsfCategories();
+          renderDashboard();
+          closeEditModal();
+          showConfirmation("CSF status saved successfully!");
+        } else {
+          console.error("Error saving data: CSF ID not found", csfId);
+          alert("An error occurred while saving. Please try again.");
+        }
+      }
+
+      // --- Global Event Listeners ---
+
+      // Close modal if clicking outside the content area
+      modalEl.addEventListener("click", (event) => {
+        if (event.target === modalEl) {
+          closeEditModal();
+        }
+      });
+
+      // Close modal on Escape key press
+      document.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Escape" &&
+          !modalEl.classList.contains("pointer-events-none")
+        ) {
+          closeEditModal();
+        }
+      });
+
+      // --- Initialization ---
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeCsfData(); // Load or initialize CSF data (NOW ADDS DUMMY DATA ON FIRST LOAD)
+        renderDashboard(); // Render the top dashboard
+        renderAllEvents(eventsData); // Render PDCA events
+        renderAllCsfCategories(); // Render the main CSF details section
+      });
+    </script>
+  </body>
+</html>
